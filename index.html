@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EcoMatriz · Aspectos, impactos y riesgos ambientales</title>
+<style>
+:root{--bg:#e8eee9;--panel:#f7faf7;--ink:#14261f;--mute:#5b6e65;--line:#c5d1c9;--acc:#1f5c7a;
+--bajo:#3f8f5b;--mod:#c9a227;--alto:#d9772b;--crit:#b3261e}
+@media (prefers-color-scheme:dark){:root{--bg:#101a16;--panel:#17251f;--ink:#e6efe9;--mute:#9bb0a5;--line:#2c3e35;--acc:#6cb4d6}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 "Segoe UI",system-ui,sans-serif}
+header{padding:28px 20px 12px;max-width:1200px;margin:auto}
+h1{font:700 2rem/1.1 Georgia,"Times New Roman",serif;margin:0 0 6px;letter-spacing:-.01em}
+header p{margin:0;color:var(--mute);max-width:70ch}
+main{max-width:1200px;margin:auto;padding:12px 20px 60px;display:grid;gap:20px}
+section{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:18px}
+h2{font:600 1.15rem Georgia,serif;margin:0 0 12px}
+.grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}
+label{display:flex;flex-direction:column;font-size:.85rem;color:var(--mute);gap:4px}
+input,select,textarea{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:4px;padding:7px 9px}
+input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-visible{outline:2px solid var(--acc);outline-offset:1px}
+textarea{min-height:70px;resize:vertical}
+.wide{grid-column:1/-1}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+button{font:inherit;cursor:pointer;border-radius:4px;border:1px solid var(--acc);background:var(--acc);color:#fff;padding:8px 14px}
+button.sec{background:transparent;color:var(--acc)}
+button.del{background:transparent;border-color:var(--line);color:var(--mute);padding:3px 8px}
+.live{display:flex;gap:14px;align-items:center;margin-top:12px;padding:10px 12px;border-left:6px solid var(--line);background:var(--bg)}
+.badge{display:inline-block;min-width:74px;text-align:center;padding:2px 8px;border-radius:3px;color:#fff;font-weight:600;font-size:.82rem}
+.Bajo{background:var(--bajo)}.Moderado{background:var(--mod);color:#1b1b1b}.Alto{background:var(--alto)}.Crítico{background:var(--crit)}
+.sug{margin:12px 0 0;padding:12px;border:1px dashed var(--acc);border-radius:4px}
+.sug h3{margin:0 0 6px;font-size:.95rem}
+.sug ul{margin:0;padding-left:18px}
+.sug li{margin:3px 0}
+.sug b{color:var(--acc)}
+.stats{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.stat{padding:8px 14px;border-radius:4px;color:#fff;font-weight:600}
+.stat small{display:block;font-weight:400;opacity:.9}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;min-width:900px;font-size:.88rem}
+th,td{text-align:left;padding:8px;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--mute);font-weight:600;font-size:.8rem}
+td.num{text-align:center;white-space:nowrap}
+.empty{color:var(--mute);padding:18px 0}
+@media(prefers-reduced-motion:no-preference){.live{transition:border-color .2s}}
+</style>
+</head>
+<body>
+<header>
+<h1>EcoMatriz</h1>
+<p>Registra actividades, identifica sus aspectos e impactos ambientales, valora el riesgo (probabilidad × severidad) y define medidas de mitigación jerarquizadas. Los datos se guardan en tu navegador.</p>
+</header>
+<main>
+<section>
+<h2>Nuevo registro</h2>
+<div class="grid">
+<label>Proceso o área<input id="area" placeholder="Ej.: Planta de producción"></label>
+<label>Actividad<input id="act" placeholder="Ej.: Lavado de equipos"></label>
+<label>Aspecto ambiental (tipo)<select id="tipo"></select></label>
+<label>Condición de operación<select id="cond"><option>Normal</option><option>Anormal</option><option>Emergencia</option></select></label>
+<label class="wide">Aspecto (descripción)<input id="asp" placeholder="Ej.: Descarga de agua con detergentes"></label>
+<label class="wide">Impacto ambiental<input id="imp" placeholder="Se sugiere según el tipo de aspecto"></label>
+<label>Probabilidad (1–5)<select id="p"></select></label>
+<label>Severidad (1–5)<select id="s"></select></label>
+</div>
+<div class="live" id="live"></div>
+<div class="sug" id="sug"></div>
+<label style="margin-top:12px">Medidas de mitigación elegidas (una por línea)<textarea id="med"></textarea></label>
+<div class="grid" style="margin-top:12px">
+<label>Probabilidad residual (1–5)<select id="rp"></select></label>
+<label>Severidad residual (1–5)<select id="rs"></select></label>
+<label>Responsable<input id="resp" placeholder="Ej.: Jefe de mantenimiento"></label>
+</div>
+<div class="row">
+<button id="add">Agregar a la matriz</button>
+<button class="sec" id="usemed">Usar todas las sugerencias</button>
+<button class="sec" id="demo">Cargar ejemplo</button>
+</div>
+</section>
+
+<section>
+<h2>Matriz de aspectos, impactos y riesgos</h2>
+<div class="stats" id="stats"></div>
+<div class="scroll"><table>
+<thead><tr><th>Área / actividad</th><th>Aspecto</th><th>Impacto</th><th>Cond.</th><th>P×S</th><th>Riesgo inherente</th><th>Medidas de mitigación</th><th>Riesgo residual</th><th>Resp.</th><th></th></tr></thead>
+<tbody id="body"></tbody></table></div>
+<div class="row">
+<button class="sec" id="csv">Exportar CSV</button>
+<button class="sec" id="json">Exportar JSON</button>
+<button class="sec" id="imp-btn">Importar JSON</button>
+<input type="file" id="file" accept=".json" hidden>
+<button class="sec" id="clear">Vaciar matriz</button>
+</div>
+</section>
+</main>
+
+<script>
+const CAT = {
+"Emisiones atmosféricas":{imp:"Contaminación del aire y contribución al cambio climático",med:[["Eliminar","Sustituir combustibles fósiles por energías limpias"],["Controlar","Instalar filtros, scrubbers o catalizadores y monitorear emisiones"],["Controlar","Mantenimiento preventivo de calderas y vehículos"],["Compensar","Programa de reforestación o compensación de carbono"]]},
+"Vertimientos / aguas residuales":{imp:"Contaminación de cuerpos de agua y del suelo",med:[["Sustituir","Usar insumos biodegradables o de menor toxicidad"],["Controlar","Sistema de tratamiento de aguas residuales y monitoreo de parámetros"],["Controlar","Trampas de grasa, sedimentadores y red de drenaje separada"],["Controlar","Cumplir límites máximos permisibles (LMP) aplicables"]]},
+"Residuos peligrosos":{imp:"Contaminación de suelo y agua, riesgo para la salud",med:[["Eliminar","Reducir en la fuente o sustituir materiales peligrosos"],["Controlar","Almacén temporal con contención, rotulado y hojas de seguridad"],["Controlar","Entrega a operador autorizado con manifiesto"],["Controlar","Capacitación en manejo y kits antiderrame"]]},
+"Residuos no peligrosos":{imp:"Agotamiento de rellenos y contaminación del suelo",med:[["Eliminar","Reducir el uso de empaques y materiales descartables"],["Controlar","Segregación en la fuente con puntos ecológicos"],["Controlar","Reciclaje y valorización con recicladores formales"],["Compensar","Compostaje de residuos orgánicos"]]},
+"Consumo de agua":{imp:"Agotamiento del recurso hídrico",med:[["Eliminar","Detectar y reparar fugas"],["Sustituir","Equipos y grifería de bajo consumo"],["Controlar","Medición por área y metas de reducción"],["Controlar","Reutilizar o recircular agua tratada"]]},
+"Consumo de energía":{imp:"Agotamiento de recursos y emisiones indirectas de GEI",med:[["Sustituir","Iluminación LED y equipos de alta eficiencia"],["Sustituir","Incorporar energía solar u otras renovables"],["Controlar","Sensores, apagado programado y auditoría energética"]]},
+"Consumo de materias primas":{imp:"Agotamiento de recursos naturales",med:[["Sustituir","Materiales reciclados o certificados"],["Controlar","Optimizar procesos para reducir mermas"],["Controlar","Compras responsables con criterios ambientales"]]},
+"Ruido y vibraciones":{imp:"Molestias a la comunidad y afectación a la fauna",med:[["Eliminar","Reemplazar equipos ruidosos"],["Controlar","Encapsulamiento, silenciadores y barreras acústicas"],["Controlar","Limitar horarios y monitorear niveles de ruido"]]},
+"Afectación del suelo":{imp:"Contaminación, erosión o pérdida de suelo fértil",med:[["Controlar","Pisos impermeabilizados y diques de contención"],["Controlar","Plan de contingencia y kits antiderrame"],["Controlar","Control de erosión y revegetación"],["Compensar","Remediación del suelo afectado"]]},
+"Biodiversidad y hábitat":{imp:"Pérdida o alteración de flora, fauna y ecosistemas",med:[["Eliminar","Evitar intervenir áreas sensibles o protegidas"],["Controlar","Ahuyentamiento y rescate de fauna antes de intervenir"],["Compensar","Reforestación con especies nativas"]]},
+"Olores y material particulado":{imp:"Deterioro de la calidad del aire local y molestias",med:[["Controlar","Humectación de vías y cobertura de material"],["Controlar","Extracción localizada y biofiltros"],["Controlar","Cerramiento de áreas de almacenamiento"]]}
+};
+const LEV = r => r>=16?"Crítico":r>=10?"Alto":r>=5?"Moderado":"Bajo";
+const COL = {Bajo:"var(--bajo)",Moderado:"var(--mod)",Alto:"var(--alto)",Crítico:"var(--crit)"};
+const $ = id => document.getElementById(id);
+let data = [];
+try { data = JSON.parse(localStorage.getItem("ecomatriz")||"[]"); } catch(e){ data = []; }
+const save = () => { try { localStorage.setItem("ecomatriz", JSON.stringify(data)); } catch(e){} };
+const esc = t => String(t??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+const P_LAB = ["1 · Muy improbable","2 · Poco probable","3 · Posible","4 · Probable","5 · Casi seguro"];
+const S_LAB = ["1 · Insignificante","2 · Menor","3 · Moderada","4 · Mayor","5 · Catastrófica"];
+function fill(id, labs, v){ $(id).innerHTML = labs.map((l,i)=>`<option value="${i+1}">${l}</option>`).join(""); $(id).value = v; }
+$("tipo").innerHTML = Object.keys(CAT).map(k=>`<option>${k}</option>`).join("");
+fill("p",P_LAB,3); fill("s",S_LAB,3); fill("rp",P_LAB,1); fill("rs",S_LAB,2);
+
+function live(){
+  const r = +$("p").value * +$("s").value, l = LEV(r);
+  $("live").style.borderColor = COL[l];
+  $("live").innerHTML = `<span>Riesgo inherente: <b>${r}</b></span><span class="badge ${l}">${l}</span>`;
+}
+function suggest(){
+  const c = CAT[$("tipo").value];
+  if(!$("imp").dataset.touched) $("imp").value = c.imp;
+  $("sug").innerHTML = `<h3>Medidas sugeridas (de mayor a menor prioridad)</h3><ul>${c.med.map(m=>`<li><b>${m[0]}:</b> ${esc(m[1])}</li>`).join("")}</ul>`;
+}
+$("imp").addEventListener("input",()=>$("imp").dataset.touched="1");
+$("tipo").addEventListener("change",()=>{ $("imp").dataset.touched=""; suggest(); });
+["p","s"].forEach(i=>$(i).addEventListener("change",live));
+$("usemed").onclick = () => { $("med").value = CAT[$("tipo").value].med.map(m=>`${m[0]}: ${m[1]}`).join("\n"); };
+
+$("add").onclick = () => {
+  if(!$("act").value.trim() || !$("asp").value.trim()){ alert("Completa al menos la actividad y la descripción del aspecto."); return; }
+  data.push({area:$("area").value.trim(),act:$("act").value.trim(),tipo:$("tipo").value,asp:$("asp").value.trim(),
+    imp:$("imp").value.trim(),cond:$("cond").value,p:+$("p").value,s:+$("s").value,
+    med:$("med").value.split("\n").map(x=>x.trim()).filter(Boolean),rp:+$("rp").value,rs:+$("rs").value,resp:$("resp").value.trim()});
+  save(); render();
+  ["act","asp","med"].forEach(i=>$(i).value=""); $("imp").dataset.touched=""; suggest();
+};
+
+function render(){
+  const cnt = {Bajo:0,Moderado:0,Alto:0,Crítico:0};
+  data.forEach(d=>cnt[LEV(d.p*d.s)]++);
+  $("stats").innerHTML = Object.keys(cnt).map(k=>`<div class="stat" style="background:${COL[k]};${k==="Moderado"?"color:#1b1b1b":""}">${cnt[k]}<small>${k}</small></div>`).join("")
+    + `<div class="stat" style="background:var(--acc)">${data.length}<small>Registros</small></div>`;
+  if(!data.length){ $("body").innerHTML = `<tr><td colspan="10" class="empty">Aún no hay registros. Agrega el primero arriba o carga el ejemplo.</td></tr>`; return; }
+  const order = data.map((d,i)=>[d,i]).sort((a,b)=>b[0].p*b[0].s-a[0].p*a[0].s);
+  $("body").innerHTML = order.map(([d,i])=>{
+    const r=d.p*d.s,l=LEV(r),rr=d.rp*d.rs,rl=LEV(rr);
+    return `<tr><td><b>${esc(d.area)}</b><br>${esc(d.act)}</td><td>${esc(d.asp)}<br><small>${esc(d.tipo)}</small></td>
+    <td>${esc(d.imp)}</td><td>${esc(d.cond)}</td><td class="num">${d.p}×${d.s}=${r}</td>
+    <td><span class="badge ${l}">${l}</span></td>
+    <td>${d.med.length?"<ul style='margin:0;padding-left:16px'>"+d.med.map(m=>`<li>${esc(m)}</li>`).join("")+"</ul>":"—"}</td>
+    <td><span class="badge ${rl}">${rl}</span><br><small>${d.rp}×${d.rs}=${rr}</small></td>
+    <td>${esc(d.resp)}</td><td><button class="del" data-i="${i}" aria-label="Eliminar registro">Quitar</button></td></tr>`;
+  }).join("");
+  document.querySelectorAll(".del").forEach(b=>b.onclick=()=>{ data.splice(+b.dataset.i,1); save(); render(); });
+}
+
+function download(name, text, type){
+  const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([text],{type})); a.download=name; a.click(); URL.revokeObjectURL(a.href);
+}
+$("csv").onclick = () => {
+  const h=["Área","Actividad","Tipo de aspecto","Aspecto","Impacto","Condición","P","S","Riesgo","Nivel","Medidas","P residual","S residual","Riesgo residual","Nivel residual","Responsable"];
+  const q=v=>`"${String(v).replace(/"/g,'""')}"`;
+  const rows=data.map(d=>[d.area,d.act,d.tipo,d.asp,d.imp,d.cond,d.p,d.s,d.p*d.s,LEV(d.p*d.s),d.med.join(" | "),d.rp,d.rs,d.rp*d.rs,LEV(d.rp*d.rs),d.resp].map(q).join(","));
+  download("matriz-ambiental.csv","\ufeff"+[h.map(q).join(","),...rows].join("\n"),"text/csv");
+};
+$("json").onclick = () => download("matriz-ambiental.json", JSON.stringify(data,null,2), "application/json");
+$("imp-btn").onclick = () => $("file").click();
+$("file").onchange = e => {
+  const f=e.target.files[0]; if(!f) return;
+  f.text().then(t=>{ try{ const j=JSON.parse(t); if(!Array.isArray(j)) throw 0; data=j; save(); render(); }catch(_){ alert("El archivo no es un JSON de matriz válido."); } });
+};
+$("clear").onclick = () => { if(confirm("¿Vaciar toda la matriz?")){ data=[]; save(); render(); } };
+$("demo").onclick = () => {
+  const m = t => CAT[t].med.slice(0,3).map(x=>`${x[0]}: ${x[1]}`);
+  data.push(
+   {area:"Producción",act:"Lavado de equipos",tipo:"Vertimientos / aguas residuales",asp:"Descarga de agua con detergentes",imp:CAT["Vertimientos / aguas residuales"].imp,cond:"Normal",p:4,s:3,med:m("Vertimientos / aguas residuales"),rp:2,rs:2,resp:"Jefe de planta"},
+   {area:"Mantenimiento",act:"Cambio de aceite de maquinaria",tipo:"Residuos peligrosos",asp:"Generación de aceite usado y trapos contaminados",imp:CAT["Residuos peligrosos"].imp,cond:"Normal",p:4,s:4,med:m("Residuos peligrosos"),rp:2,rs:3,resp:"Supervisor de mantenimiento"},
+   {area:"Almacén",act:"Trasvase de combustible",tipo:"Afectación del suelo",asp:"Derrame accidental de combustible",imp:CAT["Afectación del suelo"].imp,cond:"Emergencia",p:2,s:5,med:m("Afectación del suelo"),rp:1,rs:4,resp:"Coordinador SST/Ambiental"},
+   {area:"Oficinas",act:"Uso de iluminación y aire acondicionado",tipo:"Consumo de energía",asp:"Consumo de electricidad",imp:CAT["Consumo de energía"].imp,cond:"Normal",p:5,s:2,med:m("Consumo de energía"),rp:3,rs:1,resp:"Administración"});
+  save(); render();
+};
+live(); suggest(); render();
+</script>
+</body>
+</html>
